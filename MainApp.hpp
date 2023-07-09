@@ -7,7 +7,7 @@
 #include <wx/wx.h>
 #include <wx/display.h>
 
-class mainApp : public wxApp {
+class MainApp : public wxApp {
 public:
     bool OnInit();
 };

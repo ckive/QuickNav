@@ -2,13 +2,13 @@
 // Created by Dan on 7/3/23.
 //
 
-#include "mainApp.hpp"
-#include "mainFrame.hpp"
+#include "MainApp.hpp"
+#include "MainFrame.hpp"
 #include <iostream>
 
-wxIMPLEMENT_APP(mainApp);
+wxIMPLEMENT_APP(MainApp);
 
-bool mainApp::OnInit() {
+bool MainApp::OnInit() {
     // Get the screen size
     wxSize screenSize = wxGetDisplaySize();
 
@@ -16,7 +16,7 @@ bool mainApp::OnInit() {
     int screenWidth = screenSize.GetWidth();
     int screenHeight = screenSize.GetHeight();
 
-    mainFrame* mainframe = new mainFrame("Quick Nav v1.0", screenWidth, screenHeight);
+    MainFrame* mainframe = new MainFrame("Quick Nav v1.0", screenWidth, screenHeight);
     mainframe->Show();
     return true;
 }
