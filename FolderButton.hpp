@@ -10,9 +10,10 @@
 class FolderButton : public wxButton
 {
 public:
-    FolderButton(ScrollWindowNavGrid* parent, const wxBitmapBundle& iconBundle, const wxString& label)
-            : wxButton(parent, wxID_ANY, label,wxDefaultPosition,wxDefaultSize)
+    FolderButton(ScrollWindowNavGrid* parent, const wxBitmapBundle& iconBundle, const wxString& label, wxSize size)
+            : wxButton(parent, wxID_ANY, label, wxDefaultPosition, size)
     {
+
         SetBitmap(iconBundle, wxTOP);
         m_parent = parent;
         fn = label;
@@ -22,12 +23,9 @@ public:
 //        Bind(wxEVT_KEY_UP, &FolderButton::OnKeyUp, this);
     }
 
-    wxString getFolderName(){
-        return fn;
-    }
+
 
 private:
-    ScrollWindowNavGrid* m_parent;
     wxString fn;
 //    void handleSpacePress(wxKeyEvent& event)
 //    {

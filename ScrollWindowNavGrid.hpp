@@ -9,6 +9,7 @@
 #include <wx/filename.h>
 
 const int NUM_COLS = 5;
+const float SHRINKAGE = 0.9;
 
 class ScrollWindowNavGrid : public wxScrolledWindow {
 public:

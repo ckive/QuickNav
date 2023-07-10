@@ -16,6 +16,7 @@
 #include <wx/artprov.h>
 #include <wx/filename.h>
 #include <wx/mimetype.h>
+#include <wx/display.h>
 
 
 ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
@@ -26,6 +27,18 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
 {
     wxInitAllImageHandlers();
 
+    // Get the screen size
+    wxDisplay display;
+    wxRect screenRect = display.GetGeometry();
+    int screenWidth = screenRect.GetWidth();
+    int screenHeight = screenRect.GetHeight();
+
+    // Calculate the maximum button size based on screen size
+    int maxWidth = (screenWidth / NUM_COLS)*0.9;
+    int maxHeight = (screenHeight / NUM_COLS)*0.9;
+
+    wxSize buttonSize = wxSize(maxWidth, maxHeight);
+
     // Create a box sizer to hold the icons
     wxBoxSizer* scrollableSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -33,7 +46,7 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
     // base dir
     // wxString directoryPath = "/Users/dan/Desktop/uwcold/vsco";
 //    wxString directoryPath = "/Users/dan/Desktop/uwcold/instaloader";
-    wxString directoryPath = "/Users/dan/Desktop/uwcold/fav2";
+    wxString directoryPath = "/Users/dan/Desktop/uwcold";
 //    wxArrayString directoryContents;
     std::vector<wxFileName> directoryContents;
 
@@ -58,7 +71,6 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
 //    m_curDirItemCount = (int)dir.GetAllFiles(directoryPath, &directoryContents);
 
     // sort alphabetically
-//    directoryContents.Sort();
     std::sort(directoryContents.begin(), directoryContents.end(), [](const wxFileName& fileName1, const wxFileName& fileName2) {
         return fileName1.GetFullName().CmpNoCase(fileName2.GetFullName()) < 0;
     });
@@ -69,53 +81,65 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
     if (directoryContents.size()%m_numCols != 0)
         m_numRows++;
 
-    // instead of from DIP, get from current client size or something.
-//    const int WIDTH = FromDIP(100);
-//    const int HEIGHT = FromDIP(100);
-
-    const int WIDTH = 100;
-    const int HEIGHT = 100;
-
     m_gridSizer = new wxGridSizer(m_numCols);
 
-    wxBitmapBundle folderIconBundle = wxArtProvider::GetBitmapBundle(wxART_FOLDER, wxART_OTHER, wxSize(WIDTH, HEIGHT));
-    wxBitmapBundle questionIconBundle = wxArtProvider::GetBitmapBundle(wxART_QUESTION, wxART_OTHER, wxSize(WIDTH,
-                                                                                                           HEIGHT));
-    wxBitmapBundle videoIconBundle = wxArtProvider::GetBitmapBundle(wxART_MISSING_IMAGE, wxART_OTHER, wxSize(WIDTH,
-                                                                                                         HEIGHT));
+    wxSize defaultIconSize = wxSize(maxWidth*0.9, maxHeight*0.9);
+
+    wxBitmapBundle folderIconBundle = wxArtProvider::GetBitmapBundle(wxART_FOLDER, wxART_OTHER, defaultIconSize);
+    wxBitmapBundle questionIconBundle = wxArtProvider::GetBitmapBundle(wxART_QUESTION, wxART_OTHER, defaultIconSize);
+    wxBitmapBundle videoIconBundle = wxArtProvider::GetBitmapBundle(wxART_MISSING_IMAGE, wxART_OTHER, defaultIconSize);
 
     // Load and add images to the grid sizer
     for (const wxFileName& dirElement : directoryContents)
     {
         wxButton* folderButton;
         if (IsDirectory(dirElement)){
-            folderButton = new FolderButton(this, folderIconBundle,dirElement.GetName());
+            folderButton = new FolderButton(this, folderIconBundle,dirElement.GetName(), buttonSize);
         }else if (IsImageFile(dirElement)){
 //            std::printf("IMAGE\n");
 //            wxPrintf("fp: %s\n", dirElement.GetFullPath());
 //            wxImage image(dirElement.GetFullPath());
             wxImage image;
             if (image.LoadFile(dirElement.GetFullPath())){
-                image.Rescale(WIDTH, HEIGHT, wxIMAGE_QUALITY_NEAREST);  // fastest
+                // get aspect ratio
+                int width = image.GetWidth();
+                int height = image.GetHeight();
+                if (width > maxWidth || height > maxHeight)
+                {
+                    double aspectRatio = static_cast<double>(width) / height;
+                    if (aspectRatio > 1.0)
+                    {
+                        width = maxWidth*0.9;
+                        height = static_cast<int>(width / aspectRatio)*0.9;
+                    }
+                    else
+                    {
+                        height = maxHeight*0.9;
+                        width = static_cast<int>(height * aspectRatio)*0.9;
+                    }
+                }
+
+                image.Rescale(width, height, wxIMAGE_QUALITY_NEAREST);  // fastest
+//                image.Rescale(WIDTH, HEIGHT, wxIMAGE_QUALITY_NEAREST);  // fastest
 //                image.Rescale(WIDTH, HEIGHT, wxIMAGE_QUALITY_HIGH);  // best
                 wxBitmap bitmap(image);
                 wxBitmapBundle bitmapBundle(bitmap);
-                folderButton = new FolderButton(this, bitmapBundle,dirElement.GetName());
+                folderButton = new FolderButton(this, bitmapBundle,dirElement.GetName(),buttonSize);
             }else{
-                folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName());
+                folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName(),buttonSize);
             }
 
         }else if (IsVideoFile(dirElement)){
-            folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName());
+            folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName(),buttonSize);
             std::printf("VIDEO\n");
         }else{
             // question mark
             std::printf("QUESTIONMARK");
-            folderButton = new FolderButton(this, questionIconBundle,dirElement.GetName());
+            folderButton = new FolderButton(this, questionIconBundle,dirElement.GetName(),buttonSize);
         }
 
         folderButton->Bind(wxEVT_KEY_UP, &MainFrame::OnKeyUp, dynamic_cast<MainFrame*>(parent));
-        m_gridSizer->Add(folderButton, 0, wxALIGN_CENTER | wxALL, 10);
+        m_gridSizer->Add(folderButton, 1, wxALIGN_CENTER | wxALL, 5);
     }
     // set first in focus
     wxWindow* firstwindow = m_gridSizer->GetChildren().GetFirst()->GetData()->GetWindow();

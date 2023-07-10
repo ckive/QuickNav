@@ -3,16 +3,21 @@
 //
 
 #include <filesystem>
-#include <wx/stdpaths.h>
 
+#include <wx/display.h>
 
 #include "MainFrame.hpp"
 #include "ScrollWindowNavGrid.hpp"
 #include "HelpDialog.hpp"
-#include "FolderButton.hpp"
 
 MainFrame::MainFrame(const wxString &title, int maxX, int maxY)
         : wxFrame(nullptr, wxID_ANY, title) {
+
+//    // Get the screen size
+//    wxDisplay display;
+//    wxRect screenRect = display.GetGeometry();
+//    int screenWidth = screenRect.GetWidth();
+//    int screenHeight = screenRect.GetHeight();
 
 
 
