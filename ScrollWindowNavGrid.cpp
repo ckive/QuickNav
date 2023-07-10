@@ -2,45 +2,41 @@
 // Created by Dan on 7/8/23.
 //
 
+#include "MainFrame.hpp"
 #include "ScrollWindowNavGrid.hpp"
+#include "FolderButton.hpp"
+
+#include <vector>
+#include <algorithm>
 
 #include <wx/wx.h>
 #include <wx/sizer.h>
 #include <wx/dir.h>
 #include <wx/image.h>
-#include <vector>
 #include <wx/artprov.h>
+#include <wx/filename.h>
+#include <wx/mimetype.h>
 
-#include "FolderPanel.hpp"
 
 ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
         : wxScrolledWindow(parent, wxID_ANY),
           m_currentRow(0),
           m_currentCol(0),
-          m_numCols(NUM_COLS),
-          m_parent(parent)
+          m_numCols(NUM_COLS)
 {
-    // timer for key press
-    dblclick_timer = new wxTimer(this, wxID_ANY);
+    wxInitAllImageHandlers();
 
-    // bind timer to window
-    this->Bind(wxEVT_TIMER, &ScrollWindowNavGrid::onTimer, this, wxID_ANY);
-
-
-//    this->SetBackgroundColour(wxColour(0, 150, 0));
-    std::printf("numRows: %d        numCols: %d\n", m_numCols, m_numRows);
     // Create a box sizer to hold the icons
     wxBoxSizer* scrollableSizer = new wxBoxSizer(wxVERTICAL);
-
-    // wasd movement
-    Bind(wxEVT_KEY_UP, &ScrollWindowNavGrid::OnKeyUp, this);
-    Bind(wxEVT_CHAR_HOOK, &ScrollWindowNavGrid::OnCharHook, this);
 
 
     // base dir
     // wxString directoryPath = "/Users/dan/Desktop/uwcold/vsco";
-    wxString directoryPath = "/Users/dan/Desktop/uwcold/instaloader";
-    wxArrayString subfolderNames;
+//    wxString directoryPath = "/Users/dan/Desktop/uwcold/instaloader";
+    wxString directoryPath = "/Users/dan/Desktop/uwcold/fav2";
+//    wxArrayString directoryContents;
+    std::vector<wxFileName> directoryContents;
+
 
     wxDir dir(directoryPath);
     if (!dir.IsOpened())
@@ -49,46 +45,82 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
         return;
     }
 
-    wxString subfolder;
-    bool cont = dir.GetFirst(&subfolder, wxEmptyString, wxDIR_DIRS);
+    wxString directoryElement;
+    bool cont = dir.GetFirst(&directoryElement, wxEmptyString, wxDIR_DIRS|wxDIR_FILES);
     while (cont)
     {
-        // Exclude "." and ".." entries
-        if (subfolder != wxT(".") && subfolder != wxT(".."))
-        {
-            subfolderNames.Add(subfolder);
-        }
-        cont = dir.GetNext(&subfolder);
+        wxFileName fileElement = wxFileName(directoryPath, directoryElement);
+        directoryContents.push_back(fileElement);
+        cont = dir.GetNext(&directoryElement);
     }
+
+////     this is for flattening. it recursively gets all files
+//    m_curDirItemCount = (int)dir.GetAllFiles(directoryPath, &directoryContents);
+
     // sort alphabetically
-    subfolderNames.Sort();
+//    directoryContents.Sort();
+    std::sort(directoryContents.begin(), directoryContents.end(), [](const wxFileName& fileName1, const wxFileName& fileName2) {
+        return fileName1.GetFullName().CmpNoCase(fileName2.GetFullName()) < 0;
+    });
 
     // set number of rows now
-    m_curDirItemCount = (int)subfolderNames.GetCount();
+    m_curDirItemCount = (int)directoryContents.size();
     m_numRows = m_curDirItemCount / m_numCols;
-    if (subfolderNames.GetCount()%m_numCols != 0)
+    if (directoryContents.size()%m_numCols != 0)
         m_numRows++;
 
     // instead of from DIP, get from current client size or something.
-    const int WIDTH = FromDIP(200);
-    const int HEIGHT = FromDIP(200);
+//    const int WIDTH = FromDIP(100);
+//    const int HEIGHT = FromDIP(100);
+
+    const int WIDTH = 100;
+    const int HEIGHT = 100;
 
     m_gridSizer = new wxGridSizer(m_numCols);
 
-    wxBitmap folderIcon = wxArtProvider::GetBitmap(wxART_FOLDER, wxART_OTHER, wxSize(WIDTH, HEIGHT));
     wxBitmapBundle folderIconBundle = wxArtProvider::GetBitmapBundle(wxART_FOLDER, wxART_OTHER, wxSize(WIDTH, HEIGHT));
+    wxBitmapBundle questionIconBundle = wxArtProvider::GetBitmapBundle(wxART_QUESTION, wxART_OTHER, wxSize(WIDTH,
+                                                                                                           HEIGHT));
+    wxBitmapBundle videoIconBundle = wxArtProvider::GetBitmapBundle(wxART_MISSING_IMAGE, wxART_OTHER, wxSize(WIDTH,
+                                                                                                         HEIGHT));
 
     // Load and add images to the grid sizer
-    for (const wxString& sf : subfolderNames)
+    for (const wxFileName& dirElement : directoryContents)
     {
-        auto folderPanel = new FolderPanel(this, sf, &folderIcon);
-        folderPanel->Bind(wxEVT_KEY_UP, &ScrollWindowNavGrid::OnKeyUp, this);
-        m_gridSizer->Add(folderPanel, 0, wxALIGN_CENTER | wxALL, 10);
-//        wxButton* folderButton = new wxButton(this, wxID_ANY,sf);
-//        folderButton->SetBitmap(folderIconBundle, wxTOP);
-//        folderButton->Bind(wxEVT_KEY_UP, &ScrollWindowNavGrid::OnKeyUp, this);
-//        m_gridSizer->Add(folderButton, 0, wxALIGN_CENTER | wxALL, 10);
+        wxButton* folderButton;
+        if (IsDirectory(dirElement)){
+            folderButton = new FolderButton(this, folderIconBundle,dirElement.GetName());
+        }else if (IsImageFile(dirElement)){
+//            std::printf("IMAGE\n");
+//            wxPrintf("fp: %s\n", dirElement.GetFullPath());
+//            wxImage image(dirElement.GetFullPath());
+            wxImage image;
+            if (image.LoadFile(dirElement.GetFullPath())){
+                image.Rescale(WIDTH, HEIGHT, wxIMAGE_QUALITY_NEAREST);  // fastest
+//                image.Rescale(WIDTH, HEIGHT, wxIMAGE_QUALITY_HIGH);  // best
+                wxBitmap bitmap(image);
+                wxBitmapBundle bitmapBundle(bitmap);
+                folderButton = new FolderButton(this, bitmapBundle,dirElement.GetName());
+            }else{
+                folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName());
+            }
+
+        }else if (IsVideoFile(dirElement)){
+            folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName());
+            std::printf("VIDEO\n");
+        }else{
+            // question mark
+            std::printf("QUESTIONMARK");
+            folderButton = new FolderButton(this, questionIconBundle,dirElement.GetName());
+        }
+
+        folderButton->Bind(wxEVT_KEY_UP, &MainFrame::OnKeyUp, dynamic_cast<MainFrame*>(parent));
+        m_gridSizer->Add(folderButton, 0, wxALIGN_CENTER | wxALL, 10);
     }
+    // set first in focus
+    wxWindow* firstwindow = m_gridSizer->GetChildren().GetFirst()->GetData()->GetWindow();
+    dynamic_cast<MainFrame*>(parent)->focusWindowsPush(firstwindow);
+    firstwindow->SetFocus();
 
     scrollableSizer->Add(m_gridSizer, 0, wxEXPAND);
     SetSizer(scrollableSizer);
@@ -98,190 +130,8 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
 }
 
 
-void ScrollWindowNavGrid::onTimer(wxTimerEvent& event) {
-    // Timer expired, log "1 Q press" to status bar
-    wxLogStatus("Timer Expired, we here!");
-    qDoublePress = false; // Timer expired, reset double press state
-}
-
-HelpDialog::HelpDialog(wxWindow* parent)
-        : wxDialog(parent, wxID_ANY, "Shortcuts Help") {
-
-    const wxString text = "The following shows the supported shortcuts of this app:\n"
-                          "Q-H - help\n"
-                          "Q-R - random from base\n"
-                          "Q-S - shuffle cur order\n"
-                          "Q-B - tag new base\n"
-                          "Q-F - flatten\n"
-                          "Q-G - gallery\n"
-                          "Q-P - to path\n"
-                          "Q-E - cursor to end\n"
-                          "Q-T - terminal\n"
-                          "Q-Q - quit\n"
-                          "Q-BB - untag base\n"
-                          "Q-FF - unflatten\n"
-                          "Thank you for using QuickNav";
-
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    wxStaticText* staticText = new wxStaticText(this, wxID_ANY, text);
-    sizer->Add(staticText, wxSizerFlags().Center().Border(wxALL, 10));
-
-    SetSizerAndFit(sizer);
-}
 
 
-void ScrollWindowNavGrid::OnKeyUp(wxKeyEvent& event) {
-    int keyCode = event.GetKeyCode();
-    std::printf("onkeyup: %d\n", keyCode);
-
-    switch (keyCode){
-        case 'Q':
-            qKeyPressed = false;
-            break;
-        case 'H':
-            hKeyPressed = false;
-            break;
-        case 'R':
-            rKeyPressed = false;
-            break;
-        case 'S':
-            sKeyPressed = false;
-            break;
-        case 'B':
-            bKeyPressed = false;
-            break;
-        case 'F':
-            fKeyPressed = false;
-            break;
-        case 'G':
-            gKeyPressed = false;
-            break;
-        case 'P':
-            pKeyPressed = false;
-            break;
-        case 'E':
-            eKeyPressed = false;
-            break;
-        case 'T':
-            tKeyPressed = false;
-            break;
-        default:
-            std::printf("keyupdefault: %d\n", keyCode);
-            break;
-    }
-}
-
-void ScrollWindowNavGrid::OnCharHook(wxKeyEvent& event) {
-    int keyCode = event.GetKeyCode();
-    std::printf("oncharhook: %d\n", keyCode);
-
-    switch (keyCode){
-        case 'Q':
-            qKeyPressed = true;
-            if (qDoublePress) {
-                // Quit Application
-                wxLogStatus("Double key press detected: Q");
-                qDoublePress = false; // Reset double press state
-                dblclick_timer->Stop();
-                m_parent->Close();
-            } else if (bDoublePress){
-                // Unset Base Dir
-                wxLogStatus("Double key press detected: B");
-                bDoublePress = false; // Reset double press state
-                dblclick_timer->Stop();
-            } else if (fDoublePress){
-                // Unflatten
-                wxLogStatus("Double key press detected: F");
-                fDoublePress = false; // Reset double press state
-                dblclick_timer->Stop();
-            } else {
-                wxLogStatus("Single key press detected: Q");
-                qDoublePress = true; // Set double press state
-                dblclick_timer->Start(400, wxTIMER_ONE_SHOT); // Restart the timer
-            }
-            break;
-        case 'H':
-            hKeyPressed = true;
-            break;
-        case 'R':
-            rKeyPressed = true;
-            break;
-        case 'S':
-            sKeyPressed = true;
-            break;
-        case 'B':
-            bDoublePress = true; // kinda broken
-            dblclick_timer->Start(400, wxTIMER_ONE_SHOT);
-            bKeyPressed = true;
-            break;
-        case 'F':
-            fDoublePress = true;
-            dblclick_timer->Start(400, wxTIMER_ONE_SHOT);
-            fKeyPressed = true;
-            break;
-        case 'G':
-            gKeyPressed = true;
-            break;
-        case 'P':
-            pKeyPressed = true;
-            break;
-        case 'E':
-            eKeyPressed = true;
-            break;
-        case 'T':
-            tKeyPressed = true;
-            break;
-        default:
-            std::printf("keychardefault\n");
-//            std::printf("keycode(mf): %d    qpressed: %s\n", keyCode, qKeyPressed ? "true" : "false");
-            break;
-    }
-
-    // checking combos here
-    if (qKeyPressed && hKeyPressed){
-        wxLogStatus("Q+H Pressed");
-        // Help
-
-        HelpDialog helpdialog(this);
-        helpdialog.ShowModal();
-        hKeyPressed = false;
-    } else if (qKeyPressed && rKeyPressed) {
-        wxLogStatus("Q+R Pressed");
-    } else if (qKeyPressed && sKeyPressed) {
-        wxLogStatus("Q+S Pressed");
-    } else if (qKeyPressed && bKeyPressed) {
-        wxLogStatus("Q+B Pressed");
-    } else if (qKeyPressed && fKeyPressed) {
-        wxLogStatus("Q+F Pressed");
-    } else if (qKeyPressed && gKeyPressed) {
-        wxLogStatus("Q+G Pressed");
-    } else if (qKeyPressed && pKeyPressed) {
-        wxLogStatus("Q+P Pressed");
-    } else if (qKeyPressed && eKeyPressed) {
-        wxLogStatus("Q+E Pressed");
-    } else if (qKeyPressed && tKeyPressed) {
-        wxLogStatus("Q+T Pressed");
-    }
-
-    if (!qKeyPressed){
-        if (keyCode == 'W' || keyCode == 'w') {
-            // 'W' or 'w': Move focus upward within the grid
-            MoveFocusUp();
-        } else if (keyCode == 'A' || keyCode == 'a') {
-            // 'A' or 'a': Move focus to the left within the grid
-            MoveFocusLeft();
-        } else if (keyCode == 'S' || keyCode == 's') {
-            // 'S' or 's': Move focus downward within the grid
-            MoveFocusDown();
-        } else if (keyCode == 'D' || keyCode == 'd') {
-            // 'D' or 'd': Move focus to the right within the grid
-            MoveFocusRight();
-        } else {
-            std::printf("oncharhook inwasd notq: %d\n", keyCode);
-        }
-    }
-
-}
 
 void ScrollWindowNavGrid::MoveFocusUp() {
     m_currentRow--;
@@ -345,3 +195,63 @@ void ScrollWindowNavGrid::SetFocusToCurrentElement() {
         child->SetFocus();
     }
 }
+
+bool ScrollWindowNavGrid::IsDirectory(const wxFileName& fileName)
+{
+    return wxFileName::DirExists(fileName.GetFullPath());
+}
+
+bool ScrollWindowNavGrid::IsImageFile(const wxFileName& fileName)
+{
+    wxString extension = fileName.GetExt().Lower();
+
+    // List of supported image file extensions
+    static const wxString supportedExtensions[] = {
+            "bmp", "jpg", "jpeg", "png", "gif", "tiff"
+            // Add more supported image file extensions as needed
+    };
+    for (const wxString& supportedExtension : supportedExtensions)
+    {
+        if (extension == supportedExtension)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ScrollWindowNavGrid::IsVideoFile(const wxFileName& fileName)
+{
+    wxString extension = fileName.GetExt().Lower();
+
+    // List of supported video file extensions
+    static const wxString supportedExtensions[] = {
+            "mp4", "avi", "mov", "mkv", "wmv"
+            // Add more supported video file extensions as needed
+    };
+
+    // Check if the file extension is in the list of supported extensions
+    for (const wxString& supportedExtension : supportedExtensions)
+    {
+        if (extension == supportedExtension)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+
+// Either enters a dir or displays media
+void ScrollWindowNavGrid::HandleSpace() {
+    /*
+     * if focus window is directory
+     *      add cur path to stack
+     *
+     */
+}
+
+
+
