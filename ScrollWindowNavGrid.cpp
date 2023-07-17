@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <stack>
 #include <vector>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 
 #include <wx/wx.h>
@@ -46,13 +48,12 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
 
     // base dir
 //     wxString directoryPath = "/Users/dan/Desktop/uwcold/vsco";
-     wxString curDirPath = "/Users/dan/Documents";
+//     wxString curDirPath = "/Users/dan/Documents";
 //    wxString directoryPath = "/Users/dan/Desktop/uwcold/instaloader";
 //    wxString directoryPath = "/Users/dan/Desktop/uwcold";
 //    wxArrayString directoryContents;
 
-    curBaseDir = wxFileName(curDirPath);
-
+    curBaseDir = "/Users/dan/Documents";
 
     m_scrollableSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -148,12 +149,12 @@ void ScrollWindowNavGrid::SetFocusToCurrentElement() {
     }
 }
 
-bool ScrollWindowNavGrid::IsDirectory(wxFileName& fileName)
+bool ScrollWindowNavGrid::IsDirectory(fs::path& fileName)
 {
-    return wxFileName::DirExists(fileName.GetFullPath());
+    return fs::is_directory(fileName);
 }
 
-bool ScrollWindowNavGrid::IsImageFile(wxFileName& fileName)
+bool ScrollWindowNavGrid::IsImageFile(fs::path& fileName)
 {
     wxString extension = fileName.GetExt().Lower();
 
@@ -213,9 +214,9 @@ void ScrollWindowNavGrid::HandleSpace() {
 
     FolderButton* child = wxDynamicCast(childwindow, FolderButton);
 
-    wxFileName& curfn = child->getFileName();
-    auto fstring = child->getItemName();
-    std::cout << fstring << std::endl;
+    fs::path curfn = fs::path(child->getFileName().GetFullPath().ToStdString());
+//    auto fstring = child->getItemName();
+//    std::cout << fstring << std::endl;
 
     if (IsDirectory(curfn)) {
         // Rerender
