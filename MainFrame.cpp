@@ -201,7 +201,7 @@ void MainFrame::OnCharHook(wxKeyEvent& event) {
             /*
              * go back to last focused window. if not displayed, display it unless at base
              */
-//            std::printf("ESC\n");
+            m_scrollableWindow->HandleEsc();
             break;
         default:
 //            std::printf("keychardefault\n");

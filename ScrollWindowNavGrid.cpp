@@ -8,16 +8,15 @@
 
 
 #include <algorithm>
-#include <stack>
 #include <vector>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 
 #include <wx/wx.h>
 #include <wx/sizer.h>
-#include <wx/dir.h>
 #include <wx/image.h>
 #include <wx/artprov.h>
-#include <wx/filename.h>
 #include <wx/display.h>
 #include <wx/object.h>
 
@@ -46,13 +45,18 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
 
     // base dir
 //     wxString directoryPath = "/Users/dan/Desktop/uwcold/vsco";
-     wxString curDirPath = "/Users/dan/Documents";
+//     wxString curDirPath = "/Users/dan/Documents";
 //    wxString directoryPath = "/Users/dan/Desktop/uwcold/instaloader";
 //    wxString directoryPath = "/Users/dan/Desktop/uwcold";
 //    wxArrayString directoryContents;
 
-    curBaseDir = wxFileName(curDirPath);
+    // base dir tagging
+    curBaseDir = "/Users/dan/Documents";
+    baseDirs.push(curBaseDir);
 
+    // sequence of directory traversal
+    curDir = curBaseDir;
+    curDirStack.push(curDir);
 
     m_scrollableSizer = new wxBoxSizer(wxVERTICAL);
 
@@ -63,9 +67,6 @@ ScrollWindowNavGrid::ScrollWindowNavGrid(wxWindow* parent)
     SetScrollRate(10, 10);
     this->EnableScrolling(true, true);
 }
-
-
-
 
 
 void ScrollWindowNavGrid::MoveFocusUp() {
@@ -148,21 +149,21 @@ void ScrollWindowNavGrid::SetFocusToCurrentElement() {
     }
 }
 
-bool ScrollWindowNavGrid::IsDirectory(wxFileName& fileName)
+bool ScrollWindowNavGrid::IsDirectory(fs::path& fileName)
 {
-    return wxFileName::DirExists(fileName.GetFullPath());
+    return fs::is_directory(fileName);
 }
 
-bool ScrollWindowNavGrid::IsImageFile(wxFileName& fileName)
+bool ScrollWindowNavGrid::IsImageFile(fs::path& fileName)
 {
-    wxString extension = fileName.GetExt().Lower();
+//    wxString extension = fileName.GetExt().Lower();
+    std::string extension = fileName.extension();
 
     // List of supported image file extensions
-    static const wxString supportedExtensions[] = {
-            "bmp", "jpg", "jpeg", "png", "gif", "tiff"
-            // Add more supported image file extensions as needed
+    static const std::string supportedExtensions[] = {
+            ".bmp", ".jpg", ".jpeg", ".png", ".gif", ".tiff"
     };
-    for (const wxString& supportedExtension : supportedExtensions)
+    for (const std::string& supportedExtension : supportedExtensions)
     {
         if (extension == supportedExtension)
         {
@@ -172,18 +173,17 @@ bool ScrollWindowNavGrid::IsImageFile(wxFileName& fileName)
     return false;
 }
 
-bool ScrollWindowNavGrid::IsVideoFile(wxFileName& fileName)
+bool ScrollWindowNavGrid::IsVideoFile(fs::path& fileName)
 {
-    wxString extension = fileName.GetExt().Lower();
+    auto extension = fileName.extension();
 
     // List of supported video file extensions
-    static const wxString supportedExtensions[] = {
-            "mp4", "avi", "mov", "mkv", "wmv"
-            // Add more supported video file extensions as needed
+    static const std::string supportedExtensions[] = {
+            ".mp4", ".avi", ".mov", ".mkv", ".wmv"
     };
 
     // Check if the file extension is in the list of supported extensions
-    for (const wxString& supportedExtension : supportedExtensions)
+    for (const auto& supportedExtension : supportedExtensions)
     {
         if (extension == supportedExtension)
         {
@@ -194,76 +194,26 @@ bool ScrollWindowNavGrid::IsVideoFile(wxFileName& fileName)
     return false;
 }
 
-
-
-// Either enters a dir or displays media
-void ScrollWindowNavGrid::HandleSpace() {
-    /*
-     * get current element's path
-     * if focus window is directory
-     *      update internal directory, rerender grid with new directory items
-     * if media
-     *      window popup of the image, (subsequent keypresses kills this window and renders another window)
-     *
-     */
-    // current window
-    int index = m_currentRow * m_numCols + m_currentCol;
-//    FolderButton* child =  static_cast<FolderButton*>(m_gridSizer->GetItem(index)->GetWindow());
-    wxWindow* childwindow =  m_gridSizer->GetItem(index)->GetWindow();
-
-    FolderButton* child = wxDynamicCast(childwindow, FolderButton);
-
-    wxFileName& curfn = child->getFileName();
-    auto fstring = child->getItemName();
-    std::cout << fstring << std::endl;
-
-    if (IsDirectory(curfn)) {
-        // Rerender
-        std::printf("Is a Dir, rerendering: ");
-//        auto s = curfn.GetFullPath().c_str();
-//        std::cout << s << std::endl;
-        //TODO: clear the current grid and rerender
-        ReRender(curfn);
-    }else{
-        std::printf("IS SOMETHING ELSE");
-    }
-}
-
-void ScrollWindowNavGrid::ReRender(wxFileName &curdir) {
+void ScrollWindowNavGrid::ReRender(fs::path &curdir) {
     // here we render the grid with information given the current dir
 
-    // clear
-//    m_scrollableSizer->Clear();
     // for each FolderButton in grid, delete it
     m_scrollableSizer->Clear(true);
 
-    std::vector<wxFileName> directoryContents;
-    wxString curdirAsString = curdir.GetFullPath();
-    wxLogMessage("%s", curdirAsString);
-    std::cout << "Cur dir: " + curdirAsString.c_str() << std::endl;
-    wxDir dir(curdirAsString);
-    if (!dir.IsOpened())
-    {
-        wxLogError("Failed to open directory: %s", curdirAsString);
-        return;
-    }
+//    std::vector<fs::path> directoryContents;
+    std::vector<fs::directory_entry> directoryContents;
+    std::cout << "Cur dir: ";
+    std::cout << curdir << std::endl;
 
-    wxString directoryElement;
-    bool cont = dir.GetFirst(&directoryElement, wxEmptyString, wxDIR_DIRS|wxDIR_FILES);
-    while (cont)
-    {
-        wxFileName fileElement = wxFileName(curdirAsString, directoryElement);
-        directoryContents.push_back(fileElement);
-        cont = dir.GetNext(&directoryElement);
+    for (const auto& dir_entry : fs::directory_iterator(curdir)){
+        if (!dir_entry.path().filename().empty() && !dir_entry.path().filename().string().empty() && dir_entry.path().filename().string()[0] == '.') {
+            continue; // Skip hidden files
+        }
+        directoryContents.push_back(dir_entry);
     }
-
-////     this is for flattening. it recursively gets all files
-//    m_curDirItemCount = (int)dir.GetAllFiles(directoryPath, &directoryContents);
 
     // sort alphabetically
-    std::sort(directoryContents.begin(), directoryContents.end(), [](const wxFileName& fileName1, const wxFileName& fileName2) {
-        return fileName1.GetFullName().CmpNoCase(fileName2.GetFullName()) < 0;
-    });
+    std::sort(directoryContents.begin(), directoryContents.end());
 
     // set number of rows now
     m_curDirItemCount = (int)directoryContents.size();
@@ -281,14 +231,16 @@ void ScrollWindowNavGrid::ReRender(wxFileName &curdir) {
     wxBitmapBundle videoIconBundle = wxArtProvider::GetBitmapBundle(wxART_MISSING_IMAGE, wxART_OTHER, defaultIconSize);
 
     // Load and add images to the grid sizer
-    for (wxFileName dirElement : directoryContents)
+    for (fs::path dirElement : directoryContents)
     {
+        wxString label = wxString(dirElement.stem());
         wxButton* folderButton;
         if (IsDirectory(dirElement)){
-            folderButton = new FolderButton(this, folderIconBundle,dirElement.GetName(), buttonSize, dirElement);
+            folderButton = new FolderButton(this, folderIconBundle, label, buttonSize,
+                                            dirElement);
         }else if (IsImageFile(dirElement)){
             wxImage image;
-            if (image.LoadFile(dirElement.GetFullPath())){
+            if (image.LoadFile(wxString(dirElement))){
                 // get aspect ratio
                 int width = image.GetWidth();
                 int height = image.GetHeight();
@@ -314,16 +266,16 @@ void ScrollWindowNavGrid::ReRender(wxFileName &curdir) {
 //                image.Rescale(WIDTH, HEIGHT, wxIMAGE_QUALITY_HIGH);  // best
                 wxBitmap bitmap(image);
                 wxBitmapBundle bitmapBundle(bitmap);
-                folderButton = new FolderButton(this, bitmapBundle,dirElement.GetName(),buttonSize, dirElement);
+                folderButton = new FolderButton(this, bitmapBundle,label,buttonSize, dirElement);
             }else{
-                folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName(),buttonSize, dirElement);
+                folderButton = new FolderButton(this, videoIconBundle,label,buttonSize, dirElement);
             }
 
         }else if (IsVideoFile(dirElement)){
-            folderButton = new FolderButton(this, videoIconBundle,dirElement.GetName(),buttonSize,dirElement);
+            folderButton = new FolderButton(this, videoIconBundle,label,buttonSize,dirElement);
         }else{
             // question mark
-            folderButton = new FolderButton(this, questionIconBundle,dirElement.GetName(),buttonSize, dirElement);
+            folderButton = new FolderButton(this, questionIconBundle,label,buttonSize, dirElement);
         }
 
         folderButton->Bind(wxEVT_KEY_UP, &MainFrame::OnKeyUp, dynamic_cast<MainFrame*>(m_parent));
@@ -342,6 +294,55 @@ void ScrollWindowNavGrid::ReRender(wxFileName &curdir) {
 
     // rerender
     Layout();
+}
+
+// Either enters a dir or displays media
+void ScrollWindowNavGrid::HandleSpace() {
+    /*
+     * push curdir to stack
+     * if focus window is directory
+     *      update internal directory, rerender grid with new directory items
+     * if media
+     *      window popup of the image, (subsequent keypresses kills this window and renders another window)
+     *
+     */
+    curDirStack.push(curDir);
+
+    // current window
+    int index = m_currentRow * m_numCols + m_currentCol;
+//    FolderButton* child =  static_cast<FolderButton*>(m_gridSizer->GetItem(index)->GetWindow());
+    wxWindow* childwindow =  m_gridSizer->GetItem(index)->GetWindow();
+
+    FolderButton* child = wxDynamicCast(childwindow, FolderButton);
+
+    fs::path curfn = fs::path(child->getFileName());
+//    auto fstring = child->getItemName();
+//    std::cout << fstring << std::endl;
+
+    if (IsDirectory(curfn)) {
+        // Rerender
+        std::printf("Is a Dir, rerendering: ");
+        ReRender(curfn);
+    }else{
+        std::printf("IS SOMETHING ELSE");
+    }
+
+    curDir = curfn;
+
+}
+
+void ScrollWindowNavGrid::HandleEsc() {
+    // goes backwards in dir
+
+    if (!curDirStack.empty()){
+        auto target_dir = curDirStack.top();
+        curDirStack.pop();
+        curDir = target_dir;
+        ReRender(target_dir);
+    }
+    // empty do nothing
+
+
 }
 
 

@@ -6,9 +6,12 @@
 #define QUICKNAV_SCROLLWINDOWNAVGRID_HPP
 
 #include <stack>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <wx/wx.h>
 #include <wx/filename.h>
+
 
 const int NUM_COLS = 5;
 const float SHRINKAGE = 0.9;
@@ -25,6 +28,7 @@ public:
     void MoveFocusRight();
 
     void HandleSpace();
+    void HandleEsc();
 
 private:
     wxWindow* m_parent;
@@ -32,8 +36,12 @@ private:
     int maxHeight;
     wxSize buttonSize;
 
-    wxFileName curBaseDir;
-    std::stack<wxFileName*> baseDirs;
+    fs::path curBaseDir;
+    std::stack<fs::path> baseDirs;
+
+    fs::path curDir;                        // always synced with wysiwyg
+    std::stack<fs::path> curDirStack;       // empty until traversed away from initial dir
+
 
     // Create a box sizer to hold the icons
     wxBoxSizer* m_scrollableSizer;
@@ -48,10 +56,10 @@ private:
 
     void SetFocusToCurrentElement();
 
-    bool IsDirectory(wxFileName &fileName);
-    bool IsImageFile(wxFileName &fileName);
-    bool IsVideoFile(wxFileName &fileName);
-    void ReRender(wxFileName &curdir);
+    bool IsDirectory(fs::path &fileName);
+    bool IsImageFile(fs::path &fileName);
+    bool IsVideoFile(fs::path &fileName);
+    void ReRender(fs::path &curdir);
 
 };
 
