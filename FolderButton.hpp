@@ -11,7 +11,7 @@ class FolderButton : public wxButton
 {
 public:
     FolderButton(ScrollWindowNavGrid* parent, const wxBitmapBundle& iconBundle, wxString label, wxSize size,
-                 wxFileName fn)
+                 fs::path fn)
             : wxButton(parent, wxID_ANY, label, wxDefaultPosition, size), m_label(label), m_fn(fn), m_parent(parent)
     {
 
@@ -22,8 +22,7 @@ public:
 //        Bind(wxEVT_KEY_UP, &FolderButton::OnKeyUp, this);
     }
 
-    wxFileName& getFileName(){
-        std::cout << m_fn.GetFullPath() << std::endl;
+    fs::path& getFileName(){
         return m_fn;
     }
 
@@ -35,7 +34,7 @@ public:
 
 private:
     ScrollWindowNavGrid *m_parent;
-    wxFileName m_fn;
+    fs::path m_fn;
     wxString m_label;
 //    void handleSpacePress(wxKeyEvent& event)
 //    {

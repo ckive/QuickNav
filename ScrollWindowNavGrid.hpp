@@ -28,6 +28,7 @@ public:
     void MoveFocusRight();
 
     void HandleSpace();
+    void HandleEsc();
 
 private:
     wxWindow* m_parent;
@@ -36,8 +37,11 @@ private:
     wxSize buttonSize;
 
     fs::path curBaseDir;
-
     std::stack<fs::path> baseDirs;
+
+    fs::path curDir;                        // always synced with wysiwyg
+    std::stack<fs::path> curDirStack;       // empty until traversed away from initial dir
+
 
     // Create a box sizer to hold the icons
     wxBoxSizer* m_scrollableSizer;
