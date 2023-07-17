@@ -10,23 +10,33 @@
 class FolderButton : public wxButton
 {
 public:
-    FolderButton(ScrollWindowNavGrid* parent, const wxBitmapBundle& iconBundle, const wxString& label, wxSize size)
-            : wxButton(parent, wxID_ANY, label, wxDefaultPosition, size)
+    FolderButton(ScrollWindowNavGrid* parent, const wxBitmapBundle& iconBundle, wxString label, wxSize size,
+                 wxFileName fn)
+            : wxButton(parent, wxID_ANY, label, wxDefaultPosition, size), m_label(label), m_fn(fn), m_parent(parent)
     {
 
         SetBitmap(iconBundle, wxTOP);
-        m_parent = parent;
-        fn = label;
 
         // Bind keyboard events to event handlers in the custom button class
 //        Bind(wxEVT_KEY_DOWN, &FolderButton::handleSpacePress, this);
 //        Bind(wxEVT_KEY_UP, &FolderButton::OnKeyUp, this);
     }
 
+    wxFileName& getFileName(){
+        std::cout << m_fn.GetFullPath() << std::endl;
+        return m_fn;
+    }
+
+    const wxString& getItemName(){
+        return m_label;
+    }
+
 
 
 private:
-    wxString fn;
+    ScrollWindowNavGrid *m_parent;
+    wxFileName m_fn;
+    wxString m_label;
 //    void handleSpacePress(wxKeyEvent& event)
 //    {
 //        std::printf("FB Space handling\n");
@@ -47,6 +57,7 @@ private:
 //
 //        event.Skip(); // Allow event propagation
 //    }
+
 };
 
 #endif //QUICKNAV_FOLDERBUTTON_HPP

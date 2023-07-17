@@ -5,6 +5,8 @@
 #ifndef QUICKNAV_SCROLLWINDOWNAVGRID_HPP
 #define QUICKNAV_SCROLLWINDOWNAVGRID_HPP
 
+#include <stack>
+
 #include <wx/wx.h>
 #include <wx/filename.h>
 
@@ -25,6 +27,17 @@ public:
     void HandleSpace();
 
 private:
+    wxWindow* m_parent;
+    int maxWidth;
+    int maxHeight;
+    wxSize buttonSize;
+
+    wxFileName curBaseDir;
+    std::stack<wxFileName*> baseDirs;
+
+    // Create a box sizer to hold the icons
+    wxBoxSizer* m_scrollableSizer;
+
     wxGridSizer *m_gridSizer;
     int m_currentRow;
     int m_currentCol;
@@ -35,9 +48,10 @@ private:
 
     void SetFocusToCurrentElement();
 
-    bool IsDirectory(const wxFileName &fileName);
-    bool IsImageFile(const wxFileName &fileName);
-    bool IsVideoFile(const wxFileName &fileName);
+    bool IsDirectory(wxFileName &fileName);
+    bool IsImageFile(wxFileName &fileName);
+    bool IsVideoFile(wxFileName &fileName);
+    void ReRender(wxFileName &curdir);
 
 };
 

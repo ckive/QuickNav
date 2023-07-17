@@ -80,7 +80,7 @@ void MainFrame::DiveIntoDirectory(wxString folderName) {
 // Keyboard Handling
 void MainFrame::OnKeyUp(wxKeyEvent& event) {
     int keyCode = event.GetKeyCode();
-    std::printf("onkeyup: %d\n", keyCode);
+//    std::printf("onkeyup: %d\n", keyCode);
 
     switch (keyCode){
         case 'Q':
@@ -114,14 +114,14 @@ void MainFrame::OnKeyUp(wxKeyEvent& event) {
             tKeyPressed = false;
             break;
         default:
-            std::printf("keyupdefault: %d\n", keyCode);
+//            std::printf("keyupdefault: %d\n", keyCode);
             break;
     }
 }
 
 void MainFrame::OnCharHook(wxKeyEvent& event) {
     int keyCode = event.GetKeyCode();
-    std::printf("oncharhook: %d\n", keyCode);
+//    std::printf("oncharhook: %d\n", keyCode);
 
     //shitty switch
     wxString ffce;
@@ -192,7 +192,7 @@ void MainFrame::OnCharHook(wxKeyEvent& event) {
              */
             std::printf("SPACE\n");
 
-            m_focusWindows.push(FindFocus());
+//            m_focusWindows.push(FindFocus());
 
             m_scrollableWindow->HandleSpace();
 
@@ -201,10 +201,10 @@ void MainFrame::OnCharHook(wxKeyEvent& event) {
             /*
              * go back to last focused window. if not displayed, display it unless at base
              */
-            std::printf("ESC\n");
+//            std::printf("ESC\n");
             break;
         default:
-            std::printf("keychardefault\n");
+//            std::printf("keychardefault\n");
             break;
     }
 
@@ -256,7 +256,7 @@ void MainFrame::OnCharHook(wxKeyEvent& event) {
             // 'D' or 'd': Move focus to the right within the grid
             m_scrollableWindow->MoveFocusRight();
         } else {
-            std::printf("oncharhook inwasd notq: %d\n", keyCode);
+//            std::printf("oncharhook inwasd notq: %d\n", keyCode);
         }
     }
 //    auto fce = FindFocus();
