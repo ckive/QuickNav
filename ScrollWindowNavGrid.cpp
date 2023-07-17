@@ -129,10 +129,9 @@ void ScrollWindowNavGrid::SetFocusToCurrentElement() {
     if (child) {
         child->SetFocus();
         // print out full path of child element
-        std::cout << "In focus" << std::endl;
+        std::cout << "In focus: ";
         std::cout << child->GetLabel() << std::endl;
         FolderButton* c = wxDynamicCast(child, FolderButton);
-//        FolderButton* c = dynamic_cast<FolderButton*>(child);
         if (c){
             // successfully converted
             //        const wxFileName& curfn = c->getFileName();
@@ -150,6 +149,13 @@ void ScrollWindowNavGrid::SetFocusToCurrentElement() {
 
 bool ScrollWindowNavGrid::IsDirectory(wxFileName& fileName)
 {
+    const char* str = fileName.GetFullPath();
+//    std::printf("Is Dir {%s}", str);
+    std::cout << str << std::endl;
+
+    const char* str2 = "somethingla";
+    std::cout << str2 << std::endl;
+
     return wxFileName::DirExists(fileName.GetFullPath());
 }
 
