@@ -21,23 +21,15 @@ public:
     wxWindow* focusWindowsPop();
 
 private:
-
-    wxString curDir;
-
-    std::stack<wxString> m_baseDirs;     // stack of tagged basedirs
-
     std::stack<wxWindow*> m_focusWindows;     // stack of focus windows
 //    m_focusWindows.push(new wxWindow());
 
     wxStatusBar* statusBar;
 
-
-    void DiveIntoDirectory(wxString folderName);
-
     wxBoxSizer* m_mainSizer;
 
 
-        // scroll window
+    // scroll window
     ScrollWindowNavGrid* m_scrollableWindow;
 
 

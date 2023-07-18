@@ -30,6 +30,22 @@ public:
     void HandleSpace();
     void HandleEsc();
 
+    void ShuffleCurdir();
+
+    void RdmDirFromBase();
+
+    void tagBaseDir();
+
+    void untagBaseDir();
+
+    void unflattenBaseDir();
+
+    void flattenBaseDir();
+
+    void jumpToEnd();
+
+    void showGallery();
+
 private:
     wxWindow* m_parent;
     int maxWidth;
@@ -37,7 +53,7 @@ private:
     wxSize buttonSize;
 
     fs::path curBaseDir;
-    std::stack<fs::path> baseDirs;
+    std::stack<fs::path> curBaseDirStack;
 
     fs::path curDir;                        // always synced with wysiwyg
     std::stack<fs::path> curDirStack;       // empty until traversed away from initial dir
@@ -59,7 +75,10 @@ private:
     bool IsDirectory(fs::path &fileName);
     bool IsImageFile(fs::path &fileName);
     bool IsVideoFile(fs::path &fileName);
-    void ReRender(fs::path &curdir);
+    void ReRender(fs::path &curdir, bool shuffle=false, bool flatten=false);
+
+    void popDirTilBase();
+
 
 };
 

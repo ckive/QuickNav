@@ -69,13 +69,6 @@ wxWindow* MainFrame::focusWindowsPop(){
 }
 
 
-// FileSystem
-// open new directory
-void MainFrame::DiveIntoDirectory(wxString folderName) {
-
-}
-
-
 
 // Keyboard Handling
 void MainFrame::OnKeyUp(wxKeyEvent& event) {
@@ -142,11 +135,13 @@ void MainFrame::OnCharHook(wxKeyEvent& event) {
                 wxLogStatus("Double key press detected: B");
                 bDoublePress = false; // Reset double press state
                 dblclick_timer->Stop();
+                m_scrollableWindow->untagBaseDir();
             } else if (fDoublePress){
                 // Unflatten
                 wxLogStatus("Double key press detected: F");
                 fDoublePress = false; // Reset double press state
                 dblclick_timer->Stop();
+                m_scrollableWindow->unflattenBaseDir();
             } else {
                 wxLogStatus("Single key press detected: Q");
                 qDoublePress = true; // Set double press state
@@ -226,18 +221,27 @@ void MainFrame::OnCharHook(wxKeyEvent& event) {
         hKeyPressed = false;
     } else if (qKeyPressed && rKeyPressed) {
         wxLogStatus("Q+R Pressed");
+        // select random dir from curBaseDir
+        m_scrollableWindow->RdmDirFromBase();
     } else if (qKeyPressed && sKeyPressed) {
         wxLogStatus("Q+S Pressed");
+        // shuffle elements in curdir
+        m_scrollableWindow->ShuffleCurdir();
     } else if (qKeyPressed && bKeyPressed) {
         wxLogStatus("Q+B Pressed");
+        m_scrollableWindow->tagBaseDir();
     } else if (qKeyPressed && fKeyPressed) {
         wxLogStatus("Q+F Pressed");
+        m_scrollableWindow->flattenBaseDir();
     } else if (qKeyPressed && gKeyPressed) {
         wxLogStatus("Q+G Pressed");
+        m_scrollableWindow->showGallery();
     } else if (qKeyPressed && pKeyPressed) {
         wxLogStatus("Q+P Pressed");
+//        m_scrollableWindow->jumpToPath();
     } else if (qKeyPressed && eKeyPressed) {
         wxLogStatus("Q+E Pressed");
+        m_scrollableWindow->jumpToEnd();
     } else if (qKeyPressed && tKeyPressed) {
         wxLogStatus("Q+T Pressed");
     }
